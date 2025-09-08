@@ -156,6 +156,20 @@ create_xcframework() {
   log "XCFramework written to: ${XCFRAMEWORK_PATH}"
 }
 
+# Post-process: move module.modulemap to Modules/ for each slice
+fix_modules_dir() {
+  local root="${XCFRAMEWORK_PATH}"
+  find "${root}" -type d -maxdepth 1 -mindepth 1 | while read -r slice; do
+    # skip the top-level Info.plist etc.; act only on slice dirs that contain Headers
+    if [[ -d "${slice}/Headers" ]]; then
+      mkdir -p "${slice}/Modules"
+      if [[ -f "${slice}/Headers/module.modulemap" ]]; then
+        mv "${slice}/Headers/module.modulemap" "${slice}/Modules/module.modulemap"
+      fi
+    fi
+  done
+}
+
 # ======================================
 # Build Matrix
 # ======================================
@@ -253,6 +267,7 @@ MMAP
   fi
 
   create_xcframework
+  fix_modules_dir
 
   log "Done."
 }
