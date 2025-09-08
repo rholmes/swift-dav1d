@@ -2,6 +2,13 @@
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
 
+# Build output
+/Build/build-dav1d/
+/Build/output/
+
+## macOS folder metadata
+.DS_Store
+
 ## User settings
 xcuserdata/
 
