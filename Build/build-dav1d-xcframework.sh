@@ -156,20 +156,6 @@ create_xcframework() {
   log "XCFramework written to: ${XCFRAMEWORK_PATH}"
 }
 
-# Post-process: move module.modulemap to Modules/ for each slice
-fix_modules_dir() {
-  local root="${XCFRAMEWORK_PATH}"
-  find "${root}" -type d -maxdepth 1 -mindepth 1 | while read -r slice; do
-    # skip the top-level Info.plist etc.; act only on slice dirs that contain Headers
-    if [[ -d "${slice}/Headers" ]]; then
-      mkdir -p "${slice}/Modules"
-      if [[ -f "${slice}/Headers/module.modulemap" ]]; then
-        mv "${slice}/Headers/module.modulemap" "${slice}/Modules/module.modulemap"
-      fi
-    fi
-  done
-}
-
 # ======================================
 # Build Matrix
 # ======================================
@@ -181,16 +167,12 @@ main() {
   SHARED_HEADERS_DIR="${BUILD_DIR}/headers/Headers"
   mkdir -p "${SHARED_HEADERS_DIR}/dav1d"
 
-  # Copy just the public headers
-  rsync -a "${SRC_DIR}/include/dav1d/" "${SHARED_HEADERS_DIR}/dav1d/"
-
-  # Single module map for all slices
-  cat > "${SHARED_HEADERS_DIR}/module.modulemap" <<'MMAP'
-module dav1d [system] {
-  header "dav1d/dav1d.h"
-  export *
-}
-MMAP
+  # Copy just the public headers (only .h files from include/dav1d)
+  rsync -a \
+    --include='*/' \
+    --include='*.h' \
+    --exclude='*' \
+    "${SRC_DIR}/include/dav1d/" "${SHARED_HEADERS_DIR}/dav1d/"
 
   XC_LIB_ARGS=()
 
@@ -267,7 +249,6 @@ MMAP
   fi
 
   create_xcframework
-  fix_modules_dir
 
   log "Done."
 }
