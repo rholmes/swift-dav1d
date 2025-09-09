@@ -1,4 +1,0 @@
-module Clibdav1d [system] {
-  umbrella "include"
-  export *
-}
