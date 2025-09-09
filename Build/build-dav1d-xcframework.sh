@@ -167,7 +167,7 @@ main() {
   SHARED_HEADERS_DIR="${BUILD_DIR}/headers/Headers"
   mkdir -p "${SHARED_HEADERS_DIR}/dav1d"
 
-  # Copy just the public headers (only .h files from include/dav1d)
+  # Copy public headers (only .h files from include/dav1d)
   rsync -a \
     --include='*/' \
     --include='*.h' \
