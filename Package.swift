@@ -7,13 +7,14 @@ let package = Package(
   name: "swift-dav1d",
   platforms: [.iOS(.v13), .macOS(.v12), .macCatalyst(.v14), .tvOS(.v13)],
   products: [
-    .library(name: "dav1d", targets: ["dav1d"]),
+    .library(name: "dav1d", targets: ["ClibDav1d"]),
   ],
   targets: [
     .binaryTarget(
-      name: "dav1dBinary", path: "Sources/dav1d.xcframework"),
+      name: "dav1dBinary",
+      path: "Sources/dav1d.xcframework"),
     .target(
-      name: "dav1d",
+      name: "ClibDav1d",
       dependencies: ["dav1dBinary"],
       publicHeadersPath: "include"
     ),
