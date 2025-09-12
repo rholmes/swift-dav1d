@@ -6,16 +6,19 @@ set -euo pipefail
 # ======================================
 DAV1D_TAG="${DAV1D_TAG:-1.5.1}"            # Pin for reproducibility (Jan 19, 2025)
 PRODUCT_NAME="dav1d"                       # Swift module name & XCFramework name
-BUILD_DIR="$(pwd)/build-dav1d"
-OUT_DIR="$(pwd)/output"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PACKAGE_ROOT="$( cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd )"
+BUILD_DIR="${SCRIPT_DIR}/build-dav1d"
+OUT_DIR="${BUILD_DIR}/out"
 SRC_DIR="${BUILD_DIR}/src"
-XCFRAMEWORK_PATH="${OUT_DIR}/${PRODUCT_NAME}.xcframework"
+XC_OUT="${OUT_DIR}/${PRODUCT_NAME}.xcframework"
+SPM_XC_DEST="${SPM_XC_DEST:-$PACKAGE_ROOT/Sources}"  # xcframework install dir
+SPM_HEADERS_DEST="${SPM_HEADERS_DEST:-$PACKAGE_ROOT/Sources/Cdav1d/include/dav1d}"  # shim header install dir
 
-# Toggle optional platforms
-ENABLE_WATCHOS="${ENABLE_WATCHOS:-0}"
-
-# Optional size-strip toggle (set STRIP=1 to enable)
-STRIP=${STRIP:-0}
+# Optional toggles
+ENABLE_WATCHOS="${ENABLE_WATCHOS:-0}"  # 1 to build watchOS slices
+STRIP=${STRIP:-1}                      # 1 to strip symbols in .a slices
+COPY_TO_SPM="${COPY_TO_SPM:-1}"        # 1 to copy the framework and headers to the Swift package
 
 # Minimum OS versions
 IOS_MIN=13.0
@@ -151,9 +154,28 @@ make_universal() {
 
 create_xcframework() {
   log "Creating XCFramework"
-  rm -rf "${XCFRAMEWORK_PATH}"
-  xcodebuild -create-xcframework "${XC_LIB_ARGS[@]}" -output "${XCFRAMEWORK_PATH}" >/dev/null
-  log "XCFramework written to: ${XCFRAMEWORK_PATH}"
+  rm -rf "${XC_OUT}"
+  xcodebuild -create-xcframework "${XC_LIB_ARGS[@]}" -output "${XC_OUT}" >/dev/null
+  log "XCFramework written to: ${XC_OUT}"
+}
+
+# Copy staged headers into the SwiftPM C shim (Sources/Clibaom/include/aom)
+install_headers_into_spm() {
+  local staged_headers="$1"  # e.g., $BUILD_DIR/headers
+  local src="$staged_headers/dav1d/"
+  local dest="$SPM_HEADERS_DEST"
+  echo "==> Installing headers into SwiftPM shim: $dest"
+  mkdir -p "$dest"
+  rsync -a --delete "$src" "$dest/"
+}
+
+# Copy xcframework into the SwiftPM target (Sources)
+install_framework_into_spm() {
+  local src="$XC_OUT"
+  local dest="$SPM_XC_DEST"
+  echo "==> Installing xcframework into SwiftPM target: $dest"
+  mkdir -p "$dest"
+  rsync -a --delete "$src" "$dest/"
 }
 
 # ======================================
@@ -164,7 +186,7 @@ main() {
   ensure_checkout
 
   # Shared headers used by every slice (public API only)
-  SHARED_HEADERS_DIR="${BUILD_DIR}/headers/Headers"
+  SHARED_HEADERS_DIR="${BUILD_DIR}/headers"
   mkdir -p "${SHARED_HEADERS_DIR}/dav1d"
 
   # Copy public headers (only .h files from include/dav1d)
@@ -249,6 +271,12 @@ main() {
   fi
 
   create_xcframework
+
+  # Optional: install framework and headers into SwiftPM shim
+  if [[ "$COPY_TO_SPM" == "1" ]]; then
+    install_framework_into_spm
+    install_headers_into_spm "$SHARED_HEADERS_DIR"
+  fi
 
   log "Done."
 }

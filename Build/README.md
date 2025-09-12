@@ -50,19 +50,24 @@ chmod +x build-dav1d-xcframework.sh
 
 ### Optional toggles (environment variables)
 
+- **Override dav1d tag (pin to a known release):**
+  ```bash
+  DAV1D_TAG=1.5.1 ./build-dav1d-xcframework.sh
+  ```
+
 - **Enable watchOS (device + sim, arm64_32 excluded):**
   ```bash
   ENABLE_WATCHOS=1 ./build-dav1d-xcframework.sh
   ```
 
-- **Strip symbols for smaller archives:**
+- **Disable strip symbols:**
   ```bash
-  STRIP=1 ./build-dav1d-xcframework.sh
+  STRIP=0 ./build-dav1d-xcframework.sh
   ```
 
-- **Override dav1d tag (pin to a known release):**
+- **Disable copy to Swift package:**
   ```bash
-  DAV1D_TAG=1.5.1 ./build-dav1d-xcframework.sh
+  COPY_TO_SPM=0 ./build-dav1d-xcframework.sh
   ```
 
 > You can combine toggles, e.g.:
@@ -181,17 +186,18 @@ let package = Package(
         .watchOS(.v6)
     ],
     products: [
-        .library(name: "SwiftDav1d", targets: ["SwiftDav1d"])
+        .library(name: "dav1d", targets: ["Cdav1d"])
     ],
     targets: [
         .binaryTarget(
-            name: "dav1d",
+            name: "dav1dBinary",
             url: "https://your.host/path/dav1d.xcframework.zip",
             checksum: "<REPLACE_WITH_SWIFTPM_CHECKSUM>"
         ),
         .target(
-            name: "SwiftDav1d",
-            dependencies: ["dav1d"]
+            name: "Cdav1d",
+            dependencies: ["dav1dBinary"],
+            publicHeadersPath: "include"
         )
     ]
 )
@@ -211,7 +217,7 @@ swift package compute-checksum dav1d.xcframework.zip
 
 Copy xcframework to the Sources directory (from repository root):
 ```bash
-rsync -a Build/output/dav1d.xcframework Sources/
+rsync -a Build/build-dav1d/out/dav1d.xcframework Sources/
 ```
 ---
 
@@ -235,8 +241,8 @@ rsync -a Build/output/dav1d.xcframework Sources/
 - **Headers drift**  
   Use a **single shared Headers dir** for all slices. Keep only the public `dav1d/*.h` files + `module.modulemap`.
 
-- **Size trimming**  
-  Enable `STRIP=1` to run `strip -S -x` on thin and universal archives. Expect ~5–15% smaller `.a`s without affecting reliability/perf.
+- **Symbol strip issues**  
+  This script strips at the **archive** level only—safe for all slices. If you need unstripped libs, set `STRIP_LIBS=0`.
 
 ---
 

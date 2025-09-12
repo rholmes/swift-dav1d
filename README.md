@@ -3,7 +3,7 @@ Prebuilt dav1d.xcframework (the dav1d AV1 decoder) for iOS, macOS, Mac Catalyst 
 
 ## Usage
 
-Use as a dependency in C code with `#include "dav1d/dav1d.h"`, or import as a Swift module with `import dav1d`.
+Use as a dependency in C code with `#include "dav1d/dav1d.h"`, or import as a Swift module with `import Cdav1d`.
 
 ## Notes
 - Built using Meson/Ninja + Xcode toolchains on macOS
